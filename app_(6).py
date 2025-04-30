@@ -73,7 +73,7 @@ if st.session_state.df is not None:
             'tech_stack': tech_stack,
             'location': location,
             'domain': domain,
-            'num_cand': num_cand
+            'num_cand': num_cand,
        'salary': salary
         }
 
