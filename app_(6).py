@@ -12,10 +12,10 @@ import os
 import json
 
 # Load environment variables
-load_dotenv()
+# load_dotenv()
 
 # Set the GOOGLE_APPLICATION_CREDENTIALS environment variable
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 
 # Initialize the ChatGoogleGenerativeAI model
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.81,api_key = GOOGLE_API_KEY)
