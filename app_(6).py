@@ -65,6 +65,7 @@ if st.session_state.df is not None:
     location = st.text_input("Location", placeholder="Remote / San Francisco / New York")
     domain = st.text_input("Domain (Optional)", placeholder="FinTech, AI, SaaS")
     salary = st.text_input("Salary (Optional)", placeholder="$150k - $200k")
+    num_cand = st.text_input("No of candidatees you want to shortlist", placeholder="10")
 
     if st.button("Start Sourcing!"):
         st.session_state.job_details = {
@@ -133,9 +134,9 @@ if st.session_state.df is not None:
         message_temp4 = []
 
         for i in range(len(st.session_state.df)):
-            name = st.session_state.df.iloc[i, 0]
-            url = st.session_state.df.iloc[i, 1]
-            summary = str(st.session_state.df.iloc[i, 2]) if len(st.session_state.df.columns) > 2 else ''
+            name = str(df['first_name'].values[i])+ str(df["last_name"].values[i])
+            url = str(df["URL"].values[i])
+            summary = str(df["Summary"].values[i])
 
             op = cat_class.invoke({
                 "summary": summary,
@@ -180,7 +181,10 @@ if st.session_state.df is not None:
         df_score = df_score.sort_values(by="Fit Score", ascending=False)
 
         st.header("Shortlisted Candidates")
-        st.dataframe(df_score.head())
+        try:
+            st.dataframe(df_score.head(num_cand))
+        except:
+            st.text(f"Please enter a valid number between 0 and {len(df_score))
 
         @st.cache
         def convert_df(df):
