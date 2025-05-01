@@ -164,7 +164,7 @@ if st.session_state.df is not None:
             message_temp3.append(f"Hi {op.full_name}, I saw your profile and was impressed with your achievements in {op.key_heighlights}. We're looking for a {job_title} with similar skills and experience. Salary range is ${salary}.")
             message_temp4.append(f"Hi {op.full_name}, I'm excited to share an opportunity for a {job_title} role at {domain} that aligns with your skills in {op.tech_stack}. If you're interested, let's schedule a call to discuss further.")
 
-            time.sleep(15)
+            time.sleep(5)
 
         df_score["name"] = names
         df_score["url"] = urls
