@@ -135,7 +135,7 @@ if st.session_state.df is not None:
         message_temp4 = []
 
         for i in range(len(st.session_state.df)):
-            name = str(df['first_name'].values[i])+ str(df["last_name"].values[i])
+            name = str(df["full_name"].values[i])
             url = str(df["URL"].values[i])
             summary = str(df["Summary"].values[i])
 
