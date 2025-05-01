@@ -185,7 +185,7 @@ if st.session_state.df is not None:
         try:
             st.dataframe(df_score.head(num_cand))
         except:
-            st.text(f"Please enter a valid number between 0 and {len(df_score))
+            st.text(f"Please enter a valid number between 0 and {len(df_score)")
 
         @st.cache
         def convert_df(df):
