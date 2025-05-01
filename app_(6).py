@@ -65,7 +65,7 @@ if st.session_state.df is not None:
     location = st.text_input("Location", placeholder="Remote / San Francisco / New York")
     domain = st.text_input("Domain (Optional)", placeholder="FinTech, AI, SaaS")
     salary = st.text_input("Salary (Optional)", placeholder="$150k - $200k")
-    num_cand = st.text_input("No of candidatees you want to shortlist", placeholder="10")
+    
 
     if st.button("Start Sourcing!"):
         st.session_state.job_details = {
@@ -182,7 +182,7 @@ if st.session_state.df is not None:
         df_score = df_score.sort_values(by="Fit Score", ascending=False)
 
         st.header("Shortlisted Candidates")
-        st.dataframe(df_score.head(num_cand))
+        st.dataframe(df_score.head(10))
 
         @st.cache
         def convert_df(df):
