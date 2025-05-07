@@ -148,7 +148,8 @@ def setup_llm():
 
 
     Answer in the structured manner as per the schema.
-    If any parameter is Unknown try not to include in the summary, only include those parameters which are known.
+    If any parameter is Unknown try not to include in the summary, only include those parameters which are known. Try to be very specific with
+    the job details. I want absolutely perfect candidates who have passed out from good schools.
     """),
     ])
     
