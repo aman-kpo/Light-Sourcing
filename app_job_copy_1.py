@@ -114,6 +114,15 @@ def setup_llm():
     # Create system prompt
     system = """You are an expert Recruitor, your task is to analyse the Candidate profile and determine if it matches with the job details and provide a score(out of 10) indicating how compatible the
     the profile is according to job.
+Try to ensure following points while estimating the candidate's fit score:
+For education:
+Tier1 - MIT, Stanford, CMU, UC Berkeley, Caltech, Harvard, IIT Bombay, IIT Delhi, Princeton, UIUC, University of Washington, Columbia, University of Chicago, Cornell, University of Michigan (Ann Arbor), UT Austin - Maximum points
+Tier2 - UC Davis, Georgia Tech, Purdue, UMass Amherst,etc - Moderate points
+Tier3 - Unknown or unranked institutions - Lower points or reject
+
+Startup Experience Requirement:
+Candidates must have worked  as a direct employee at a VC-backed startup (Seed to series C/D)
+preferred - Y Combinator, Sequoia,a16z,Accel,Founders Fund,LightSpeed,Greylock,Benchmark,Index Ventures,etc.   
 
     The fit score signifies based on following metrics:
     1–5 - Poor Fit - Auto-reject
