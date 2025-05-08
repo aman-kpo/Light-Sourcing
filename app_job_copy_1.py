@@ -10,6 +10,14 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
+import gspread
+from google.cloud import some_gcp_service
+# Replace with the specific GCP service you're using
+
+
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = service_account.Credentials.from_service_account_file(st.secrets["gcp_service_account"], scopes=SCOPES)
+
 
 st.set_page_config(
     page_title="Candidate Matching App",
