@@ -15,9 +15,6 @@ from google.oauth2 import service_account
 # Replace with the specific GCP service you're using
 
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-creds = service_account.Credentials.from_service_account_file(st.secrets["gcp_service_account"], scopes=SCOPES)
-
 
 st.set_page_config(
     page_title="Candidate Matching App",
