@@ -11,7 +11,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 import gspread
-from google.cloud import some_gcp_service
+from google.oauth2 import service_account
 # Replace with the specific GCP service you're using
 
 
