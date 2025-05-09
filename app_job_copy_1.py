@@ -413,7 +413,7 @@ def main():
             candidate_worksheet = candidates_sheet.worksheet('transformed_candidates_updated')
             candidate_data = candidate_worksheet.get_all_values()
             
-            jobs_df = pd.DataFrame(job_data[1:], columns=job_data[0]))
+            jobs_df = pd.DataFrame(job_data[1:], columns=job_data[0])
             candidates_df = pd.DataFrame(candidate_data[1:], columns=candidate_data[0])
             
             # Display data preview
