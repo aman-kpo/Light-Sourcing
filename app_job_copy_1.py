@@ -302,10 +302,10 @@ def process_candidates_for_job(job_row, job_index, llm_chain=None):
 
 def main():
     st.title("👨‍💻 Candidate Matching App")
-     secret_content = st.secrets["GCP_SERVICE_ACCOUNT"]
-     secret_content = secret_content.replace("\n", "\\n")
-     secret_content = json.loads(secret_content)
-     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+    secret_content = st.secrets["GCP_SERVICE_ACCOUNT"]
+    secret_content = secret_content.replace("\n", "\\n")
+    secret_content = json.loads(secret_content)
+    SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     # Initialize session state
     if 'processed_jobs' not in st.session_state:
         st.session_state.processed_jobs = {}
