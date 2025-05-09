@@ -358,7 +358,7 @@ def main():
     #     - Location (from most recent experience)
     #     """)
     # creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    creds = service_account.Credentials.from_service_account_from_dict(secret_content, scopes=SCOPES)
+    creds = service_account.Credentials.from_service_account_info(secret_content, scopes=SCOPES)
     gc = gspread.authorize(creds)
     job_sheet = gc.open_by_key('1BZlvbtFyiQ9Pgr_lpepDJua1ZeVEqrCLjssNd6OiG9k')
     candidates_sheet = gc.open_by_key('1u_9o5f0MPHFUSScjEcnA8Lojm4Y9m9LuWhvjYm6ytF4')
