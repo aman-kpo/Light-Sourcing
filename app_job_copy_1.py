@@ -302,7 +302,10 @@ def process_candidates_for_job(job_row, job_index, llm_chain=None):
 
 def main():
     st.title("👨‍💻 Candidate Matching App")
-    
+     secret_content = st.secrets["GCP_SERVICE_ACCOUNT"]
+     secret_content = secret_content.replace("\n", "\\n")
+     secret_content = json.loads(secret_content)
+     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     # Initialize session state
     if 'processed_jobs' not in st.session_state:
         st.session_state.processed_jobs = {}
@@ -327,42 +330,94 @@ def main():
         st.warning("⚠️ You need to provide an OpenAI API key in the sidebar to use this app.")
     
     # File uploads
-    col1, col2 = st.columns(2)
+    # col1, col2 = st.columns(2)
     
-    with col1:
-        jobs_file = st.file_uploader("Upload Jobs CSV", type="csv")
-        st.info("""
-        Expected columns:
-        - Company
-        - Role
-        - One liner (job description)
-        - Locations
-        - Tech Stack (comma separated)
-        - Industry
-        """)
+    # with col1:
+    #     jobs_file = st.file_uploader("Upload Jobs CSV", type="csv")
+    #     st.info("""
+    #     Expected columns:
+    #     - Company
+    #     - Role
+    #     - One liner (job description)
+    #     - Locations
+    #     - Tech Stack (comma separated)
+    #     - Industry
+    #     """)
     
-    with col2:
-        candidates_file = st.file_uploader("Upload Candidates CSV", type="csv")
-        st.info("""
-        Expected columns:
-        - Full Name
-        - LinkedIn URL
-        - Current Title & Company
-        - Years of Experience
-        - Degree & University
-        - Key Tech Stack (comma separated)
-        - Key Highlights
-        - Location (from most recent experience)
-        """)
+    # with col2:
+    #     candidates_file = st.file_uploader("Upload Candidates CSV", type="csv")
+    #     st.info("""
+    #     Expected columns:
+    #     - Full Name
+    #     - LinkedIn URL
+    #     - Current Title & Company
+    #     - Years of Experience
+    #     - Degree & University
+    #     - Key Tech Stack (comma separated)
+    #     - Key Highlights
+    #     - Location (from most recent experience)
+    #     """)
+    # creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    creds = service_account.Credentials.from_service_account_from_dict(secret_content, scopes=SCOPES)
+    gc = gspread.authorize(creds)
+    job_sheet = gc.open_by_key('1BZlvbtFyiQ9Pgr_lpepDJua1ZeVEqrCLjssNd6OiG9k')
+    candidates_sheet = gc.open_by_key('1u_9o5f0MPHFUSScjEcnA8Lojm4Y9m9LuWhvjYm6ytF4')
+    # if jobs_file and candidates_file:
+    #     try:
+    #         # Load data
+    #         jobs_df = pd.read_csv(jobs_file)
+    #         candidates_df = pd.read_csv(candidates_file)
+            
+    #         # Display data preview
+    #         with st.expander("Preview uploaded data"):
+    #             st.subheader("Jobs Data Preview")
+    #             st.dataframe(jobs_df.head(3))
+                
+    #             st.subheader("Candidates Data Preview")
+    #             st.dataframe(candidates_df.head(3))
+            
+    #         # Map column names if needed
+    #         column_mapping = {
+    #             "Full Name": "Full Name",
+    #             "LinkedIn URL": "LinkedIn URL",
+    #             "Current Title & Company": "Current Title & Company",
+    #             "Years of Experience": "Years of Experience",
+    #             "Degree & University": "Degree & University",
+    #             "Key Tech Stack": "Key Tech Stack", 
+    #             "Key Highlights": "Key Highlights",
+    #             "Location (from most recent experience)": "Location (from most recent experience)"
+    #         }
+            
+    #         # Rename columns if they don't match expected
+    #         candidates_df = candidates_df.rename(columns={
+    #             col: mapping for col, mapping in column_mapping.items() 
+    #             if col in candidates_df.columns and col != mapping
+    #         })
+            
+    #         # Process data for tech stack matching only
+    #         with st.spinner("Processing initial tech stack matching..."):
+    #             processed_jobs = process_data(jobs_df, candidates_df)
+            
+    #         # Display results and allow on-demand LLM processing
+    #         display_results(processed_jobs)
+            
+    #     except Exception as e:
+    #         st.error(f"Error processing files: {e}")
     
-    if jobs_file and candidates_file:
+    # st.divider()
+    if api_key:
         try:
             # Load data
-            jobs_df = pd.read_csv(jobs_file)
-            candidates_df = pd.read_csv(candidates_file)
+            job_worksheet = job_sheet.worksheet('paraform_jobs_formatted')
+            job_data = job_worksheet.get_all_values()
+            candidate_worksheet = candidates_sheet.worksheet('transformed_candidates_updated')
+            candidate_data = candidate_worksheet.get_all_values()
+            
+            jobs_df = pd.DataFrame(job_data[1:], columns=job_data[0]))
+            candidates_df = pd.DataFrame(candidate_data[1:], columns=candidate_data[0])
             
             # Display data preview
-            with st.expander("Preview uploaded data"):
+            with st.expander("Preview dataset"):
                 st.subheader("Jobs Data Preview")
                 st.dataframe(jobs_df.head(3))
                 
