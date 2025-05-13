@@ -128,6 +128,7 @@ preferred - Y Combinator, Sequoia,a16z,Accel,Founders Fund,LightSpeed,Greylock,B
     Key Tech Stack: {Key_Tech_Stack}
     Key Highlights: {Key_Highlights}
     Location (from most recent experience): {cand_Location}
+    Past_Experience: {Experience}
 
 
     Answer in the structured manner as per the schema.
@@ -170,7 +171,8 @@ def call_llm(candidate_data, job_data, llm_chain):
             "Degree_University": candidate_data.get("Degree & Education", ""),
             "Key_Tech_Stack": candidate_tech_stack,
             "Key_Highlights": candidate_data.get("Key Highlights", ""),
-            "cand_Location": candidate_data.get("Location", "")
+            "cand_Location": candidate_data.get("Location", ""),
+            "Experience": candidate_data.get("Experience", "")
         }
         
         # Call LLM
@@ -255,6 +257,9 @@ def process_candidates_for_job(job_row, candidates_df, llm_chain=None):
             # Add to selected candidates if score is high enough
             if response["fit_score"] >= 8.8:
                 selected_candidates.append(response_dict)
+                st.markdown(response_dict)
+            else:
+                st.write(f"Rejected candidate: {response_dict['Name']} with score: {response['fit_score']}")
         
         # Clear progress indicators
         candidates_progress.empty()
