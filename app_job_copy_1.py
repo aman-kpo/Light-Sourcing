@@ -98,12 +98,13 @@ Startup Experience Requirement:
 Candidates must have worked  as a direct employee at a VC-backed startup (Seed to series C/D)
 preferred - Y Combinator, Sequoia,a16z,Accel,Founders Fund,LightSpeed,Greylock,Benchmark,Index Ventures,etc.   
 
+Location:
+The location of candidate must be either close to job location or same as job location
     The fit score signifies based on following metrics:
     1–5 - Poor Fit - Auto-reject
     6–7 - Weak Fit - Auto-reject
     8.0–8.7 - Moderate Fit - Auto-reject
     8.8–10 - STRONG Fit - Include in results
-    Also look if the candidate haven't worked on a similar role in the past reject it directly.
     """
     
     # Create query prompt
