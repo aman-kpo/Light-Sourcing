@@ -12,12 +12,10 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 import gspread
 from google.oauth2 import service_account
-# Replace with the specific GCP service you're using
-
 
 st.set_page_config(
     page_title="Candidate Matching App",
-    page_icon="👨‍💻",
+    page_icon="👨‍💻🎯",
     layout="wide"
 )
 
@@ -52,42 +50,14 @@ def display_tech_stack(stack_set):
         return ", ".join(sorted(stack_set))
     return str(stack_set)
 
-def process_data(jobs_df, candidates_df):
-    """Initial data processing to find tech stack matches, but no LLM evaluation yet"""
-    # Create progress bar
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    status_text.text("Normalizing tech stacks...")
-    
-    # Normalize tech stacks
-    jobs_df['Tech Stack'] = jobs_df['Tech Stack'].apply(parse_tech_stack)
-    candidates_df['Key Tech Stack'] = candidates_df['Key Tech Stack'].apply(parse_tech_stack)
-    
-    progress_bar.progress(50)
-    status_text.text("Finding initial tech stack matches...")
-    
-    # Find matching candidates for each job based on tech stack only
-    jobs_df['Shortlisted Candidates'] = jobs_df['Tech Stack'].apply(
-        lambda x: get_matching_candidates(x, candidates_df)
-    )
-    
-    # Initialize an empty column for selected candidates
-    jobs_df["Selected_Candidates"] = [[] for _ in range(len(jobs_df))]
-    
-    progress_bar.progress(100)
-    status_text.text("Initial tech stack matching complete!")
-    time.sleep(1)
-    status_text.empty()
-    progress_bar.empty()
-    
-    return jobs_df
-
 def get_matching_candidates(job_stack, candidates_df):
+    """Find candidates with matching tech stack for a specific job"""
     matched = []
+    job_stack_set = parse_tech_stack(job_stack)
+    
     for _, candidate in candidates_df.iterrows():
-        candidate_stack = candidate['Key Tech Stack']
-        common = job_stack & candidate_stack
+        candidate_stack = parse_tech_stack(candidate['Key Tech Stack'])
+        common = job_stack_set & candidate_stack
         if len(common) >= 2:
             matched.append({
                 "Name": candidate["Full Name"],
@@ -97,7 +67,7 @@ def get_matching_candidates(job_stack, candidates_df):
                 "Current Title & Company": candidate['Current Title & Company'],
                 "Key Highlights": candidate["Key Highlights"],
                 "Location": candidate["Location (from most recent experience)"],
-                "Tech Stack": candidate["Key Tech Stack"]
+                "Tech Stack": candidate_stack
             })
     return matched
 
@@ -161,8 +131,7 @@ preferred - Y Combinator, Sequoia,a16z,Accel,Founders Fund,LightSpeed,Greylock,B
 
 
     Answer in the structured manner as per the schema.
-    If any parameter is Unknown try not to include in the summary, only include those parameters which are known. Try to be very specific with
-    the job details. I want absolutely perfect candidates who have passed out from good schools.
+    If any parameter is Unknown try not to include in the summary, only include those parameters which are known.
     """),
     ])
     
@@ -176,7 +145,7 @@ def call_llm(candidate_data, job_data, llm_chain):
     try:
         # Convert tech stacks to strings for the LLM payload
         job_tech_stack = job_data.get("Tech_Stack", set())
-        candidate_tech_stack = candidate_data.get("Key Tech Stack", set())
+        candidate_tech_stack = candidate_data.get("Tech Stack", set())
         
         if isinstance(job_tech_stack, set):
             job_tech_stack = ", ".join(sorted(job_tech_stack))
@@ -227,7 +196,7 @@ def call_llm(candidate_data, job_data, llm_chain):
             "justification": f"Error in LLM processing: {str(e)}"
         }
 
-def process_candidates_for_job(job_row, job_index, llm_chain=None):
+def process_candidates_for_job(job_row, candidates_df, llm_chain=None):
     """Process candidates for a specific job using the LLM"""
     if llm_chain is None:
         with st.spinner("Setting up LLM..."):
@@ -246,22 +215,25 @@ def process_candidates_for_job(job_row, job_index, llm_chain=None):
             "Industry": job_row.get("Industry", "")
         }
         
-        # Get candidates for this job
-        candidates = job_row["Shortlisted Candidates"]
+        # Find matching candidates for this job
+        with st.spinner("Finding matching candidates based on tech stack..."):
+            matching_candidates = get_matching_candidates(job_row["Tech Stack"], candidates_df)
         
-        if not candidates:
+        if not matching_candidates:
             st.warning("No candidates with matching tech stack found for this job.")
             return []
+        
+        st.success(f"Found {len(matching_candidates)} candidates with matching tech stack.")
         
         # Create progress elements
         candidates_progress = st.progress(0)
         candidate_status = st.empty()
         
         # Process each candidate
-        for i, candidate_data in enumerate(candidates):
+        for i, candidate_data in enumerate(matching_candidates):
             # Update progress
-            candidates_progress.progress((i + 1) / len(candidates))
-            candidate_status.text(f"Evaluating candidate {i+1}/{len(candidates)}: {candidate_data.get('Name', 'Unknown')}")
+            candidates_progress.progress((i + 1) / len(matching_candidates))
+            candidate_status.text(f"Evaluating candidate {i+1}/{len(matching_candidates)}: {candidate_data.get('Name', 'Unknown')}")
             
             # Process the candidate with the LLM
             response = call_llm(candidate_data, job_data, llm_chain)
@@ -281,7 +253,6 @@ def process_candidates_for_job(job_row, job_index, llm_chain=None):
             
             # Add to selected candidates if score is high enough
             if response["fit_score"] >= 8.8:
-                st.markdown(response_dict)
                 selected_candidates.append(response_dict)
         
         # Clear progress indicators
@@ -292,7 +263,7 @@ def process_candidates_for_job(job_row, job_index, llm_chain=None):
         if selected_candidates:
             st.success(f"✅ Found {len(selected_candidates)} suitable candidates for this job!")
         else:
-            st.info("No candidates met the minimum fit score threshold (8.8) for this job.")
+            st.info("No candidates met the minimum fit score threshold for this job.")
         
         return selected_candidates
         
@@ -312,7 +283,7 @@ def main():
     
     st.write("""
     This app matches job listings with candidate profiles based on tech stack and other criteria.
-    Upload your job and candidate CSV files to get started.
+    Select a job to find matching candidates.
     """)
     
     # API Key input
@@ -326,98 +297,28 @@ def main():
             st.warning("Please enter OpenAI API Key to use LLM features")
             
     # Show API key warning if not set
-    if not api_key:
-        st.warning("⚠️ You need to provide an OpenAI API key in the sidebar to use this app.")
-    
-    # File uploads
-    # col1, col2 = st.columns(2)
-    
-    # with col1:
-    #     jobs_file = st.file_uploader("Upload Jobs CSV", type="csv")
-    #     st.info("""
-    #     Expected columns:
-    #     - Company
-    #     - Role
-    #     - One liner (job description)
-    #     - Locations
-    #     - Tech Stack (comma separated)
-    #     - Industry
-    #     """)
-    
-    # with col2:
-    #     candidates_file = st.file_uploader("Upload Candidates CSV", type="csv")
-    #     st.info("""
-    #     Expected columns:
-    #     - Full Name
-    #     - LinkedIn URL
-    #     - Current Title & Company
-    #     - Years of Experience
-    #     - Degree & University
-    #     - Key Tech Stack (comma separated)
-    #     - Key Highlights
-    #     - Location (from most recent experience)
-    #     """)
-    # creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     creds = service_account.Credentials.from_service_account_info(secret_content, scopes=SCOPES)
     gc = gspread.authorize(creds)
     job_sheet = gc.open_by_key('1BZlvbtFyiQ9Pgr_lpepDJua1ZeVEqrCLjssNd6OiG9k')
     candidates_sheet = gc.open_by_key('1u_9o5f0MPHFUSScjEcnA8Lojm4Y9m9LuWhvjYm6ytF4')
-    # if jobs_file and candidates_file:
-    #     try:
-    #         # Load data
-    #         jobs_df = pd.read_csv(jobs_file)
-    #         candidates_df = pd.read_csv(candidates_file)
-            
-    #         # Display data preview
-    #         with st.expander("Preview uploaded data"):
-    #             st.subheader("Jobs Data Preview")
-    #             st.dataframe(jobs_df.head(3))
-                
-    #             st.subheader("Candidates Data Preview")
-    #             st.dataframe(candidates_df.head(3))
-            
-    #         # Map column names if needed
-    #         column_mapping = {
-    #             "Full Name": "Full Name",
-    #             "LinkedIn URL": "LinkedIn URL",
-    #             "Current Title & Company": "Current Title & Company",
-    #             "Years of Experience": "Years of Experience",
-    #             "Degree & University": "Degree & University",
-    #             "Key Tech Stack": "Key Tech Stack", 
-    #             "Key Highlights": "Key Highlights",
-    #             "Location (from most recent experience)": "Location (from most recent experience)"
-    #         }
-            
-    #         # Rename columns if they don't match expected
-    #         candidates_df = candidates_df.rename(columns={
-    #             col: mapping for col, mapping in column_mapping.items() 
-    #             if col in candidates_df.columns and col != mapping
-    #         })
-            
-    #         # Process data for tech stack matching only
-    #         with st.spinner("Processing initial tech stack matching..."):
-    #             processed_jobs = process_data(jobs_df, candidates_df)
-            
-    #         # Display results and allow on-demand LLM processing
-    #         display_results(processed_jobs)
-            
-    #     except Exception as e:
-    #         st.error(f"Error processing files: {e}")
-    
-    # st.divider()
+
+    if not api_key:
+        st.warning("⚠️ You need to provide an OpenAI API key in the sidebar to use this app.")
+
     if api_key:
         try:
-            # Load data
+            # Load data from Google Sheets
             job_worksheet = job_sheet.worksheet('paraform_jobs_formatted')
             job_data = job_worksheet.get_all_values()
             candidate_worksheet = candidates_sheet.worksheet('transformed_candidates_updated')
             candidate_data = candidate_worksheet.get_all_values()
             
+            # Convert to DataFrames
             jobs_df = pd.DataFrame(job_data[1:], columns=job_data[0])
             candidates_df = pd.DataFrame(candidate_data[1:], columns=candidate_data[0])
             
             # Display data preview
-            with st.expander("Preview dataset"):
+            with st.expander("Preview uploaded data"):
                 st.subheader("Jobs Data Preview")
                 st.dataframe(jobs_df.head(3))
                 
@@ -442,12 +343,9 @@ def main():
                 if col in candidates_df.columns and col != mapping
             })
             
-            # Process data for tech stack matching only
-            with st.spinner("Processing initial tech stack matching..."):
-                processed_jobs = process_data(jobs_df, candidates_df)
-            
-            # Display results and allow on-demand LLM processing
-            display_results(processed_jobs)
+            # Now, instead of processing all jobs upfront, we'll display job selection
+            # and only process the selected job when the user chooses it
+            display_job_selection(jobs_df, candidates_df)
             
         except Exception as e:
             st.error(f"Error processing files: {e}")
@@ -455,26 +353,28 @@ def main():
     st.divider()
     
 
-def display_results(jobs_df):
+def display_job_selection(jobs_df, candidates_df):
     # Store the LLM chain as a session state to avoid recreating it
     if 'llm_chain' not in st.session_state:
         st.session_state.llm_chain = None
     
     st.subheader("Select a job to view potential matches")
     
-    # Create job options with count of tech stack matches
+    # Create job options - but don't compute matches yet
     job_options = []
     for i, row in jobs_df.iterrows():
-        count = len(row["Shortlisted Candidates"])
-        job_options.append(f"{row['Role']} at {row['Company']} ({count} tech matches)")
+        job_options.append(f"{row['Role']} at {row['Company']}")
     
     if job_options:
-        selected_job_index = st.selectbox("Jobs with tech stack matches:", 
-                                       range(len(job_options)),
-                                       format_func=lambda x: job_options[x])
+        selected_job_index = st.selectbox("Jobs:", 
+                                      range(len(job_options)),
+                                      format_func=lambda x: job_options[x])
         
         # Display job details
         job_row = jobs_df.iloc[selected_job_index]
+        
+        # Parse tech stack for display
+        job_row_stack = parse_tech_stack(job_row["Tech Stack"])
         
         col1, col2 = st.columns([2, 1])
         
@@ -487,38 +387,35 @@ def display_results(jobs_df):
                 "Description": job_row.get("One liner", "N/A"),
                 "Locations": job_row.get("Locations", "N/A"),
                 "Industry": job_row.get("Industry", "N/A"),
-                "Tech Stack": display_tech_stack(job_row["Tech Stack"])
+                "Tech Stack": display_tech_stack(job_row_stack)
             }
             
             for key, value in job_details.items():
                 st.markdown(f"**{key}:** {value}")
         
-        with col2:
-            # Display candidate count
-            tech_matched = len(job_row["Shortlisted Candidates"])
-            st.metric("Tech Stack Matches", tech_matched)
-            
-            # Create a key for this job in session state
-            job_key = f"job_{selected_job_index}_processed"
-            
-            if job_key not in st.session_state:
-                st.session_state[job_key] = False
+        # Create a key for this job in session state
+        job_key = f"job_{selected_job_index}_processed"
+        
+        if job_key not in st.session_state:
+            st.session_state[job_key] = False
         
         # Add a process button for this job
         if not st.session_state[job_key]:
-            if st.button(f"Process Candidates for this Job"):
+            if st.button(f"Find Matching Candidates for this Job"):
                 if "OPENAI_API_KEY" not in os.environ or not os.environ["OPENAI_API_KEY"]:
                     st.error("Please enter your OpenAI API key in the sidebar before processing")
                 else:
-                    # Process candidates for this job
+                    # Process candidates for this job (only when requested)
                     selected_candidates = process_candidates_for_job(
                         job_row, 
-                        selected_job_index,
+                        candidates_df,
                         st.session_state.llm_chain
                     )
                     
                     # Store the results and set as processed
-                    jobs_df.at[selected_job_index, "Selected_Candidates"] = selected_candidates
+                    if 'Selected_Candidates' not in st.session_state:
+                        st.session_state.Selected_Candidates = {}
+                    st.session_state.Selected_Candidates[selected_job_index] = selected_candidates
                     st.session_state[job_key] = True
                     
                     # Store the LLM chain for reuse
@@ -526,11 +423,11 @@ def display_results(jobs_df):
                         st.session_state.llm_chain = setup_llm()
                     
                     # Force refresh
-                    # st.rerun()
+                    st.rerun()
         
         # Display selected candidates if already processed
-        if st.session_state[job_key]:
-            selected_candidates = jobs_df.at[selected_job_index, "Selected_Candidates"]
+        if st.session_state[job_key] and 'Selected_Candidates' in st.session_state:
+            selected_candidates = st.session_state.Selected_Candidates.get(selected_job_index, [])
             
             # Display selected candidates
             st.subheader("Selected Candidates")
@@ -556,27 +453,13 @@ def display_results(jobs_df):
             else:
                 st.info("No candidates met the minimum score threshold (8.8) for this job.")
                 
-                # Show some shortlisted candidates anyway
-                st.subheader("Some tech-matched candidates (didn't meet score threshold)")
-                shortlisted = job_row["Shortlisted Candidates"]
-                
-                if len(shortlisted) > 0:
-                    for i, candidate in enumerate(shortlisted[:3]):
-                        with st.expander(f"{i+1}. {candidate['Name']}"):
-                            st.markdown(f"**Current:** {candidate.get('Current Title & Company', 'N/A')}")
-                            st.markdown(f"**Education:** {candidate.get('Degree & Education', 'N/A')}")
-                            st.markdown(f"**Location:** {candidate.get('Location', 'N/A')}")
-
-                            
-                            tech_stack = candidate.get('Tech Stack', set())
-                            if isinstance(tech_stack, set):
-                                st.markdown(f"**Tech Stack:** {', '.join(sorted(tech_stack))}")
-                            else:
-                                st.markdown(f"**Tech Stack:** {tech_stack}")
+                # We don't show tech-matched candidates here since they are generated
+                # during the LLM matching process now
             
-            # Add a reset button
+            # Add a reset button to start over
             if st.button("Reset and Process Again"):
                 st.session_state[job_key] = False
                 st.rerun()
+
 if __name__ == "__main__":
     main()
