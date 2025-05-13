@@ -132,7 +132,7 @@ preferred - Y Combinator, Sequoia,a16z,Accel,Founders Fund,LightSpeed,Greylock,B
 
     Answer in the structured manner as per the schema.
     If any parameter is Unknown try not to include in the summary, only include those parameters which are known.
-    Also do not include Unknown parameters in the evaluation.
+    Also do not use Unknown parameters in the evaluating candidates and estimating fit scores.
     """),
     ])
     
